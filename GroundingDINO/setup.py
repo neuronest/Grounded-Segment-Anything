@@ -24,7 +24,29 @@ import glob
 import os
 import subprocess
 
-import torch
+import subprocess
+import sys
+
+
+def install_and_import(package, version=None, extra_index_url=None):
+    package_spec = package if version is None else f"{package}=={version}"
+    try:
+        # Import the package if already installed
+        __import__(package)
+    except ImportError:
+        # Install the package with specified version using pip
+        call = [sys.executable, "-m", "pip", "install", package_spec]
+        if extra_index_url:
+            call += ["--extra-index-url", extra_index_url]
+        subprocess.check_call(call)
+    finally:
+        # Import the package after installation
+        globals()[package] = __import__(package)
+
+
+install_and_import(package="torch", version="2.0.1", extra_index_url=None)
+# import torch
+
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
 
