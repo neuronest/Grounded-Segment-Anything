@@ -229,7 +229,7 @@ if __name__ == "__main__":
         install_requires=parse_requirements("requirements.txt"),
         packages=find_packages(
             exclude=(
-                # "configs",
+                "configs",
                 "tests",
             )
         ),
