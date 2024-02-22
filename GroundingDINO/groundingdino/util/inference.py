@@ -26,17 +26,22 @@ def preprocess_caption(caption: str) -> str:
     return result + "."
 
 
-def load_model(model_config_path: str, model_checkpoint_path: str, device: str = "cuda"):
+def load_model_without_checkpoint(model_config_path: str, device: str = "cuda"):
     args = SLConfig.fromfile(model_config_path)
     args.device = device
     model = build_model(args)
+    return model
+
+
+def load_model(model_config_path: str, model_checkpoint_path: str, device: str = "cuda"):
+    model = load_model_without_checkpoint(model_config_path=model_config_path, device=device)
     checkpoint = torch.load(model_checkpoint_path, map_location="cpu")
     model.load_state_dict(clean_state_dict(checkpoint["model"]), strict=False)
     model.eval()
     return model
 
 
-def load_image(image_path: str) -> Tuple[np.array, torch.Tensor]:
+def transform_rgb_pil_image(rgb_pil_image: Image):
     transform = T.Compose(
         [
             T.RandomResize([800], max_size=1333),
@@ -44,10 +49,16 @@ def load_image(image_path: str) -> Tuple[np.array, torch.Tensor]:
             T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
         ]
     )
-    image_source = Image.open(image_path).convert("RGB")
-    image = np.asarray(image_source)
-    image_transformed, _ = transform(image_source, None)
-    return image, image_transformed
+    image_transformed, _ = transform(rgb_pil_image, None)
+    return np.asarray(rgb_pil_image), image_transformed
+
+
+def transform_rgb_array_image(rgb_array_image: np.ndarray):
+    return transform_rgb_pil_image(rgb_pil_image=Image.fromarray(rgb_array_image))
+
+
+def load_and_transform_image_path(image_path: str) -> Tuple[np.array, torch.Tensor]:
+    return transform_rgb_pil_image(rgb_pil_image=Image.open(image_path).convert("RGB"))
 
 
 def predict(
