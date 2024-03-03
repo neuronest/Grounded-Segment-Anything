@@ -96,11 +96,36 @@ def predict(
     return boxes, logits.max(dim=1)[0], phrases
 
 
-def annotate(image_source: np.ndarray, boxes: torch.Tensor, logits: torch.Tensor, phrases: List[str]) -> np.ndarray:
+def convert_relative_cxcywh_to_absolute_xyxy(
+    image_height: int,
+    image_width: int,
+    relative_cxcywh: torch.Tensor
+):
+    h, w, _ = image_height, image_width, None
+    absolute_cxcywh = relative_cxcywh * torch.Tensor([w, h, w, h])
+    absolute_xyxy = box_convert(boxes=absolute_cxcywh, in_fmt="cxcywh", out_fmt="xyxy").numpy()
+
+    return absolute_xyxy
+
+
+def annotate(
+    image_source: np.ndarray,
+    boxes: torch.Tensor,
+    logits: torch.Tensor,
+    phrases: List[str]
+) -> np.ndarray:
     h, w, _ = image_source.shape
-    boxes = boxes * torch.Tensor([w, h, w, h])
-    xyxy = box_convert(boxes=boxes, in_fmt="cxcywh", out_fmt="xyxy").numpy()
-    detections = sv.Detections(xyxy=xyxy)
+    # boxes = boxes * torch.Tensor([w, h, w, h])
+    # xyxy = box_convert(boxes=boxes, in_fmt="cxcywh", out_fmt="xyxy").numpy()
+    # detections = sv.Detections(xyxy=xyxy)
+
+    detections = sv.Detections(
+        xyxy=convert_relative_cxcywh_to_absolute_xyxy(
+            image_height=h,
+            image_width=w,
+            relative_cxcywh=boxes
+        )
+    )
 
     labels = [
         f"{phrase} {logit:.2f}"
